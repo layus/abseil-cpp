@@ -20,13 +20,40 @@ module(
     compatibility_level = 1,
 )
 
-cc_configure = use_extension("@rules_cc//cc:extensions.bzl",
-                             "cc_configure_extension",
-                             dev_dependency = True)
-use_repo(cc_configure, "local_config_cc")
+# --- rules_nixpkgs ---
 
-bazel_dep(name = "rules_cc", version = "0.2.9")
+bazel_dep(name = "rules_nixpkgs_core", version = "0.13.0")
+
+bazel_dep(name = "rules_nixpkgs_cc", version = "0.13.0")
+archive_override(
+    module_name = "rules_nixpkgs_cc",
+    integrity = "sha256-MCcfe9OA5OIOTXEywySUbE/bwx6+C7tmOKD2GjfnQ5c=",
+    strip_prefix = "rules_nixpkgs-0.13.0/toolchains/cc",
+    urls = ["https://github.com/tweag/rules_nixpkgs/releases/download/v0.13.0/rules_nixpkgs-0.13.0.tar.gz"],
+)
+
+nix_repo = use_extension(
+    "@rules_nixpkgs_core//extensions:repository.bzl",
+    "nix_repo",
+)
+nix_repo.github(
+    name = "nixpkgs",
+    sha256 = "bcc12f1c35344a6b5c1f3319923e6d7317cd5f52ad7126e0a5f32e08cbb0a213",
+    tag = "25.11",
+)
+use_repo(nix_repo, "nixpkgs")
+
+cc_configure = use_extension("//:extension.bzl", "cc_configure")
+use_repo(cc_configure, "nixpkgs_config_cc")
+use_repo(cc_configure, "nixpkgs_config_cc_toolchains")
+use_repo(cc_configure, "nixpkgs_config_cc_info")
+
+register_toolchains("@nixpkgs_config_cc_toolchains//:all")
+
+# --- Standard dependencies ---
+
 bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "rules_cc", version = "0.2.9")
 bazel_dep(name = "platforms", version = "1.0.0")
 
 bazel_dep(
